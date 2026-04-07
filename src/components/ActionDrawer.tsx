@@ -23,12 +23,12 @@ export default function ActionDrawer({ intents, visible, onClose, onSaveAll }: A
   const snapPoints = useMemo(() => ['55%', '88%'], []);
 
   useEffect(() => {
-    if (visible && intents.length > 0) {
+    if (visible) {
       sheetRef.current?.snapToIndex(0);
     } else if (!visible) {
       sheetRef.current?.close();
     }
-  }, [visible, intents.length]);
+  }, [visible]);
 
   const renderBackdrop = useCallback(
     (props: any) => (
@@ -53,7 +53,10 @@ export default function ActionDrawer({ intents, visible, onClose, onSaveAll }: A
       ref={sheetRef}
       index={-1}
       snapPoints={snapPoints}
-      onChange={(index) => { if (index === -1) onClose(); }}
+      onChange={(index) => {
+        // Avoid firing on initial -1 while hidden; only notify close when drawer was shown.
+        if (visible && index === -1) onClose();
+      }}
       backdropComponent={renderBackdrop}
       enablePanDownToClose
       handleIndicatorStyle={styles.handle}

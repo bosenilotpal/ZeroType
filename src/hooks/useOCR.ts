@@ -30,7 +30,7 @@ export function useOCR() {
   });
 
   const capture = useCallback(async () => {
-    if (!cameraRef.current || state.status !== 'idle') return;
+    if (!cameraRef.current || state.status === 'capturing' || state.status === 'analyzing' || state.status === 'results') return;
 
     try {
       // 1. Freeze frame — capturing

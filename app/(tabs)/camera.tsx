@@ -87,6 +87,12 @@ export default function CameraScreen() {
     reset();
   }, [reset]);
 
+  useEffect(() => {
+    if (state.status === 'error' && state.error) {
+      Alert.alert('Scan failed', state.error);
+    }
+  }, [state.status, state.error]);
+
   if (!permission) return <View style={styles.container} />;
 
   if (!permission.granted) {
@@ -203,6 +209,21 @@ export default function CameraScreen() {
         onClose={handleDrawerClose}
         onSaveAll={handleSaveToHistory}
       />
+
+      {/* Error state — keep retry visible so scan never feels stuck */}
+      {state.status === 'error' && (
+        <View style={styles.errorBar}>
+          <View style={styles.errorContent}>
+            <Ionicons name="alert-circle-outline" size={18} color="#FEE2E2" />
+            <Text style={styles.errorText} numberOfLines={2}>
+              {state.error ?? 'Scan failed. Please try again.'}
+            </Text>
+          </View>
+          <TouchableOpacity style={styles.errorRetryBtn} onPress={reset} activeOpacity={0.9}>
+            <Text style={styles.errorRetryBtnText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -405,5 +426,40 @@ const styles = StyleSheet.create({
     ...Typography.bodyLg,
     color: Colors.onPrimary,
     fontFamily: 'Inter_600SemiBold',
+  },
+  errorBar: {
+    position: 'absolute',
+    left: Spacing.lg,
+    right: Spacing.lg,
+    bottom: Platform.OS === 'ios' ? 140 : 120,
+    borderRadius: Radii.lg,
+    backgroundColor: 'rgba(127, 29, 29, 0.94)',
+    borderWidth: 1,
+    borderColor: 'rgba(254, 202, 202, 0.35)',
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  errorContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  errorText: {
+    ...Typography.bodySm,
+    color: '#FEE2E2',
+    flex: 1,
+  },
+  errorRetryBtn: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#FEE2E2',
+    borderRadius: Radii.full,
+    paddingVertical: 6,
+    paddingHorizontal: Spacing.md,
+  },
+  errorRetryBtnText: {
+    ...Typography.labelMd,
+    color: '#7F1D1D',
+    textTransform: 'none',
+    letterSpacing: 0,
   },
 });
