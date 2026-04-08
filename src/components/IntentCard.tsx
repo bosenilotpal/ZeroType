@@ -3,7 +3,7 @@
 // ============================================================
 import React, { useCallback } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, Platform, Alert,
+  View, Text, TouchableOpacity, StyleSheet, Alert,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Linking from 'expo-linking';
@@ -11,10 +11,19 @@ import * as Contacts from 'expo-contacts';
 import * as Haptics from 'expo-haptics';
 import { Colors, Spacing, Radii, Typography, Shadows } from '../theme/tokens';
 import { Intent } from '../engine/parser';
+import {
+  buildGoogleMapsFallback,
+  buildMapsLink,
+  buildTelegramLink,
+  buildTelLink,
+  buildUpiPayLink,
+  buildWhatsAppLink,
+} from '../engine/actions';
 
 const ICONS: Record<string, keyof typeof MaterialCommunityIcons.glyphMap> = {
   phone: 'phone-outline',
   whatsapp: 'message-outline',
+  telegram: 'send-outline',
   save: 'account-plus-outline',
   navigate: 'map-marker-radius-outline',
   copy: 'content-copy',
@@ -43,19 +52,33 @@ interface ActionButtonProps {
   onPress: () => void;
   primary?: boolean;
   color?: string;
+  toneColor?: string;
+  toneBg?: string;
 }
 
-function ActionButton({ label, icon, onPress, primary = false, color }: ActionButtonProps) {
+function ActionButton({
+  label,
+  icon,
+  onPress,
+  primary = false,
+  color,
+  toneColor,
+  toneBg,
+}: ActionButtonProps) {
   const handlePress = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress();
   };
+  const iconColor = primary ? Colors.onPrimary : (toneColor ?? Colors.onSurfaceVariant);
+  const textColor = primary ? Colors.onPrimary : (toneColor ?? Colors.onSurfaceVariant);
   return (
     <TouchableOpacity
       style={[
         styles.actionBtn,
         primary && styles.actionBtnPrimary,
         primary && color ? { backgroundColor: color } : {},
+        !primary && toneBg ? { backgroundColor: toneBg } : {},
+        !primary && toneColor ? { borderColor: `${toneColor}40` } : {},
       ]}
       onPress={handlePress}
       activeOpacity={0.86}
@@ -63,9 +86,9 @@ function ActionButton({ label, icon, onPress, primary = false, color }: ActionBu
       <MaterialCommunityIcons
         name={icon}
         size={16}
-        color={primary ? Colors.onPrimary : Colors.onSurfaceVariant}
+        color={iconColor}
       />
-      <Text style={[styles.actionBtnLabel, primary && styles.actionBtnLabelPrimary]}>
+      <Text style={[styles.actionBtnLabel, primary && styles.actionBtnLabelPrimary, !primary ? { color: textColor } : {}]}>
         {label}
       </Text>
     </TouchableOpacity>
@@ -80,13 +103,18 @@ export default function IntentCard({ intent }: IntentCardProps) {
   const meta = INTENT_META[intent.type];
 
   const openPhone = useCallback(() => {
-    Linking.openURL(`tel:${intent.value.replace(/\s/g, '')}`);
+    Linking.openURL(buildTelLink(intent.value));
   }, [intent.value]);
 
   const openWhatsApp = useCallback(() => {
-    const number = intent.value.replace(/[^0-9]/g, '');
-    Linking.openURL(`https://wa.me/${number}`).catch(() => {
+    Linking.openURL(buildWhatsAppLink(intent.value)).catch(() => {
       Alert.alert('WhatsApp not found', 'Please install WhatsApp to use this feature.');
+    });
+  }, [intent.value]);
+
+  const openTelegram = useCallback(() => {
+    Linking.openURL(buildTelegramLink(intent.value)).catch(() => {
+      Alert.alert('Telegram not found', 'Please install Telegram to use this feature.');
     });
   }, [intent.value]);
 
@@ -105,13 +133,9 @@ export default function IntentCard({ intent }: IntentCardProps) {
   }, [intent.value]);
 
   const openMaps = useCallback(() => {
-    const query = encodeURIComponent(intent.value);
-    const url = Platform.OS === 'ios'
-      ? `maps:?q=${query}`
-      : `geo:0,0?q=${query}`;
+    const url = buildMapsLink(intent.value);
     Linking.openURL(url).catch(() => {
-      // Fallback to Google Maps web
-      Linking.openURL(`https://maps.google.com/?q=${query}`);
+      Linking.openURL(buildGoogleMapsFallback(intent.value));
     });
   }, [intent.value]);
 
@@ -122,7 +146,7 @@ export default function IntentCard({ intent }: IntentCardProps) {
   }, [intent.value]);
 
   const openUpi = useCallback(() => {
-    const url = `upi://pay?pa=${intent.value}&pn=ScanIntent&cu=INR`;
+    const url = buildUpiPayLink(intent.value);
     Linking.openURL(url).catch(() => {
       Alert.alert('UPI App not found', 'Please install a UPI payment app.');
     });
@@ -144,36 +168,79 @@ export default function IntentCard({ intent }: IntentCardProps) {
         return (
           <View style={styles.actionsRow}>
             <ActionButton label="CALL" icon={ICONS.phone} onPress={openPhone} primary color={Colors.phoneGreen} />
-            <ActionButton label="WHATSAPP" icon={ICONS.whatsapp} onPress={openWhatsApp} />
-            <ActionButton label="SAVE" icon={ICONS.save} onPress={saveContact} />
+            <ActionButton
+              label="WHATSAPP"
+              icon={ICONS.whatsapp}
+              onPress={openWhatsApp}
+              toneColor={Colors.phoneGreen}
+              toneBg={Colors.phoneGreenContainer}
+            />
+            <ActionButton
+              label="TELEGRAM"
+              icon={ICONS.telegram}
+              onPress={openTelegram}
+              toneColor={Colors.phoneGreen}
+              toneBg={Colors.phoneGreenContainer}
+            />
+            <ActionButton
+              label="SAVE"
+              icon={ICONS.save}
+              onPress={saveContact}
+              toneColor={Colors.phoneGreen}
+              toneBg={Colors.phoneGreenContainer}
+            />
           </View>
         );
       case 'upi':
         return (
           <View style={styles.actionsRow}>
             <ActionButton label="PAY NOW" icon={ICONS.upi} onPress={openUpi} primary color={Colors.upiPurple} />
-            <ActionButton label="COPY" icon={ICONS.copy} onPress={copyToClipboard} />
+            <ActionButton
+              label="COPY"
+              icon={ICONS.copy}
+              onPress={copyToClipboard}
+              toneColor={Colors.upiPurple}
+              toneBg={Colors.upiPurpleContainer}
+            />
           </View>
         );
       case 'address':
         return (
           <View style={styles.actionsRow}>
             <ActionButton label="NAVIGATE" icon={ICONS.navigate} onPress={openMaps} primary color={Colors.primary} />
-            <ActionButton label="COPY" icon={ICONS.copy} onPress={copyToClipboard} />
+            <ActionButton
+              label="COPY"
+              icon={ICONS.copy}
+              onPress={copyToClipboard}
+              toneColor={Colors.addressBlue}
+              toneBg={Colors.addressBlueContainer}
+            />
           </View>
         );
       case 'email':
         return (
           <View style={styles.actionsRow}>
             <ActionButton label="COMPOSE" icon={ICONS.email} onPress={openEmail} primary color={Colors.emailOrange} />
-            <ActionButton label="COPY" icon={ICONS.copy} onPress={copyToClipboard} />
+            <ActionButton
+              label="COPY"
+              icon={ICONS.copy}
+              onPress={copyToClipboard}
+              toneColor={Colors.emailOrange}
+              toneBg={Colors.emailOrangeContainer}
+            />
           </View>
         );
       case 'url':
         return (
           <View style={styles.actionsRow}>
             <ActionButton label="OPEN" icon={ICONS.open} onPress={openUrl} primary color={Colors.urlTeal} />
-            <ActionButton label="COPY" icon={ICONS.copy} onPress={copyToClipboard} />
+            <ActionButton
+              label="COPY"
+              icon={ICONS.copy}
+              onPress={copyToClipboard}
+              toneColor={Colors.urlTeal}
+              toneBg={Colors.urlTealContainer}
+            />
           </View>
         );
     }
@@ -247,7 +314,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.lg,
     backgroundColor: Colors.surfaceContainerLow,
     flex: 1,
-    minWidth: 90,
+    minWidth: 120,
     minHeight: 44,
     justifyContent: 'center',
     borderWidth: 1,
@@ -260,7 +327,7 @@ const styles = StyleSheet.create({
   actionBtnLabel: {
     ...Typography.labelMd,
     color: Colors.onSurfaceVariant,
-    letterSpacing: 0.2,
+    letterSpacing: 0.1,
     textTransform: 'none',
   },
   actionBtnLabelPrimary: {

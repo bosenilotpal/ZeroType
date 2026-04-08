@@ -56,6 +56,7 @@ export default function AnalyzingOverlay({ imageUri, visible }: AnalyzingOverlay
       <ImageBackground
         source={{ uri: imageUri }}
         style={styles.background}
+        imageStyle={styles.backgroundImage}
         blurRadius={1}
       >
         {/* Dark scrim */}
@@ -91,6 +92,10 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
+    backgroundColor: '#000',
+  },
+  backgroundImage: {
+    resizeMode: 'contain',
   },
   scrim: {
     ...StyleSheet.absoluteFillObject,

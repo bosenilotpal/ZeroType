@@ -90,6 +90,53 @@ function rawPhone(raw: string): string {
   return raw.trim();
 }
 
+function normalizeOcrDigits(input: string): string {
+  // OCR commonly confuses these characters in phone numbers.
+  return input
+    .replace(/[Oo]/g, '0')
+    .replace(/[Il|]/g, '1')
+    .replace(/[Ss]/g, '5')
+    .replace(/[B]/g, '8');
+}
+
+function extractPhoneCandidates(rawText: string): string[] {
+  const candidates = new Set<string>();
+
+  // 1) Primary regex on original text.
+  const primary = rawText.match(PHONE_REGEX) ?? [];
+  for (const m of primary) candidates.add(m);
+
+  // 2) Retry with OCR-digit normalization.
+  const normalizedText = normalizeOcrDigits(rawText);
+  const normalizedMatches = normalizedText.match(PHONE_REGEX) ?? [];
+  for (const m of normalizedMatches) candidates.add(m);
+
+  // 3) Handle merged digit runs (e.g., 80827272728082797979).
+  const longDigitRuns = normalizedText.match(/\d{10,}/g) ?? [];
+  for (const run of longDigitRuns) {
+    for (let i = 0; i + 10 <= run.length; i++) {
+      const ten = run.slice(i, i + 10);
+      if (/^[6789]\d{9}$/.test(ten)) {
+        candidates.add(ten);
+      }
+    }
+  }
+
+  // 4) Handle fragmented numbers with separators (spaces/hyphens/brackets).
+  const fragmentedRuns = normalizedText.match(/[0-9][0-9\s\-()]{9,}/g) ?? [];
+  for (const chunk of fragmentedRuns) {
+    const digits = chunk.replace(/\D/g, '');
+    for (let i = 0; i + 10 <= digits.length; i++) {
+      const ten = digits.slice(i, i + 10);
+      if (/^[6789]\d{9}$/.test(ten)) {
+        candidates.add(ten);
+      }
+    }
+  }
+
+  return [...candidates];
+}
+
 function scoreAddressLikelihood(text: string): number {
   const lower = text.toLowerCase();
   let score = 0;
@@ -177,7 +224,7 @@ export function parseIntents(rawText: string): Intent[] {
   }
 
   // 4. Phone numbers
-  const phoneMatches = rawText.match(PHONE_REGEX) ?? [];
+  const phoneMatches = extractPhoneCandidates(rawText);
   for (const m of phoneMatches) {
     const normalized = rawPhone(m);
     if (!seenValues.has(normalized)) {
