@@ -66,6 +66,38 @@ const ADDRESS_TRIGGER_WORDS = [
   'bazaar', 'bazar', 'market', 'gali', 'mohalla', 'village',
 ];
 
+const PHONE_CONTEXT_POSITIVE = [
+  'phone',
+  'mobile',
+  'mob',
+  'call',
+  'missed call',
+  'whatsapp',
+  'whats app',
+  'contact',
+  'helpline',
+  'ivrs',
+];
+
+const PHONE_CONTEXT_NEGATIVE = [
+  'invoice',
+  'tax invoice',
+  'booking',
+  'cons no',
+  'cons no/id',
+  'id',
+  'gst',
+  'gstin',
+  'hsn',
+  'price',
+  'qty',
+  'quota',
+  'loan',
+  'subsidy',
+  'date',
+  'order',
+];
+
 // ── Helpers ───────────────────────────────────────────────────
 
 function makeId(): string {
@@ -99,37 +131,63 @@ function normalizeOcrDigits(input: string): string {
     .replace(/[B]/g, '8');
 }
 
+function toCanonicalPhoneDigits(raw: string): string | null {
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('91')) return digits.slice(2);
+  if (digits.length === 11 && digits.startsWith('0')) return digits.slice(1);
+  if (digits.length === 10) return digits;
+  return null;
+}
+
+function hasPhonePositiveContext(line: string): boolean {
+  const lower = line.toLowerCase();
+  return PHONE_CONTEXT_POSITIVE.some((keyword) => lower.includes(keyword));
+}
+
+function hasPhoneNegativeContext(line: string): boolean {
+  const lower = line.toLowerCase();
+  return PHONE_CONTEXT_NEGATIVE.some((keyword) => lower.includes(keyword));
+}
+
 function extractPhoneCandidates(rawText: string): string[] {
   const candidates = new Set<string>();
+  const lines = rawText.split(/\n+/).map((line) => line.trim()).filter(Boolean);
 
-  // 1) Primary regex on original text.
-  const primary = rawText.match(PHONE_REGEX) ?? [];
-  for (const m of primary) candidates.add(m);
+  for (const line of lines) {
+    const normalizedLine = normalizeOcrDigits(line);
+    const positiveContext = hasPhonePositiveContext(line);
+    const negativeContext = hasPhoneNegativeContext(line);
 
-  // 2) Retry with OCR-digit normalization.
-  const normalizedText = normalizeOcrDigits(rawText);
-  const normalizedMatches = normalizedText.match(PHONE_REGEX) ?? [];
-  for (const m of normalizedMatches) candidates.add(m);
+    // Strongly prefer explicit contact lines; aggressively skip known invoice/id lines.
+    if (negativeContext && !positiveContext) continue;
 
-  // 3) Handle merged digit runs (e.g., 80827272728082797979).
-  const longDigitRuns = normalizedText.match(/\d{10,}/g) ?? [];
-  for (const run of longDigitRuns) {
-    for (let i = 0; i + 10 <= run.length; i++) {
-      const ten = run.slice(i, i + 10);
-      if (/^[6789]\d{9}$/.test(ten)) {
-        candidates.add(ten);
-      }
+    // 1) Primary regex on original line.
+    const primary = line.match(PHONE_REGEX) ?? [];
+    for (const m of primary) {
+      const canonical = toCanonicalPhoneDigits(m);
+      if (canonical) candidates.add(canonical);
     }
-  }
 
-  // 4) Handle fragmented numbers with separators (spaces/hyphens/brackets).
-  const fragmentedRuns = normalizedText.match(/[0-9][0-9\s\-()]{9,}/g) ?? [];
-  for (const chunk of fragmentedRuns) {
-    const digits = chunk.replace(/\D/g, '');
-    for (let i = 0; i + 10 <= digits.length; i++) {
-      const ten = digits.slice(i, i + 10);
-      if (/^[6789]\d{9}$/.test(ten)) {
-        candidates.add(ten);
+    // 2) Retry with OCR-digit normalization.
+    const normalizedMatches = normalizedLine.match(PHONE_REGEX) ?? [];
+    for (const m of normalizedMatches) {
+      const canonical = toCanonicalPhoneDigits(m);
+      if (canonical) candidates.add(canonical);
+    }
+
+    // 3) Handle fragmented values with separators but avoid slicing long IDs.
+    const fragmentedRuns = normalizedLine.match(/[0-9][0-9\s\-()]{9,}/g) ?? [];
+    for (const chunk of fragmentedRuns) {
+      const digits = chunk.replace(/\D/g, '');
+      if (digits.length < 10 || digits.length > 12) continue;
+      const canonical =
+        digits.length === 12 && digits.startsWith('91')
+          ? digits.slice(2)
+          : digits.length === 11 && digits.startsWith('0')
+            ? digits.slice(1)
+            : digits;
+      if (/^[6789]\d{9}$/.test(canonical)) {
+        candidates.add(canonical);
       }
     }
   }
@@ -176,6 +234,22 @@ function extractAddresses(text: string): Intent[] {
   return intents;
 }
 
+function looksEmailLike(value: string): boolean {
+  const [local = '', provider = ''] = value.toLowerCase().split('@');
+  if (!local || !provider) return false;
+
+  const hasDigit = /\d/.test(local);
+  const hasDot = local.includes('.');
+  const providerLooksLongBrand = provider.length >= 6 && /^[a-z]+$/.test(provider);
+  const providerLooksUpiish = /(upi|pay|bank|ok|axis|sbi|icici|hdfc|ybl|ibl|axl)/.test(provider);
+
+  // Generic business/contact emails misread without TLD often look like this.
+  if (!hasDigit && (hasDot || providerLooksLongBrand) && !providerLooksUpiish) {
+    return true;
+  }
+  return false;
+}
+
 // ── Main Parse Function ───────────────────────────────────────
 
 export function parseIntents(rawText: string): Intent[] {
@@ -217,7 +291,8 @@ export function parseIntents(rawText: string): Intent[] {
     const lower = m.toLowerCase();
     const isEmail = emailMatches.some((e) => e.toLowerCase() === lower);
     const isUrl = urlMatches.some((u) => u.includes(m));
-    if (!seenValues.has(lower) && !isEmail && !isUrl) {
+    const isEmailLike = looksEmailLike(lower);
+    if (!seenValues.has(lower) && !isEmail && !isUrl && !isEmailLike) {
       seenValues.add(lower);
       intents.push({ id: makeId(), type: 'upi', value: m, display: m, confidence: 'medium' });
     }

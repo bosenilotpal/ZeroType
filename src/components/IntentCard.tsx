@@ -14,7 +14,6 @@ import { Intent } from '../engine/parser';
 import {
   buildGoogleMapsFallback,
   buildMapsLink,
-  buildTelegramLink,
   buildTelLink,
   buildUpiPayLink,
   buildWhatsAppLink,
@@ -23,7 +22,6 @@ import {
 const ICONS: Record<string, keyof typeof MaterialCommunityIcons.glyphMap> = {
   phone: 'phone-outline',
   whatsapp: 'message-outline',
-  telegram: 'send-outline',
   save: 'account-plus-outline',
   navigate: 'map-marker-radius-outline',
   copy: 'content-copy',
@@ -35,62 +33,42 @@ const ICONS: Record<string, keyof typeof MaterialCommunityIcons.glyphMap> = {
   url: 'link-variant',
 };
 
+const ACCENT = Colors.primary;
+const ACCENT_BG = Colors.primaryContainer;
+
 const INTENT_META: Record<
   Intent['type'],
   { label: string; icon: keyof typeof MaterialCommunityIcons.glyphMap; color: string; bgColor: string }
 > = {
-  phone: { label: 'Phone Number', icon: 'phone-outline', color: Colors.phoneGreen, bgColor: Colors.phoneGreenContainer },
-  upi:   { label: 'UPI ID',       icon: 'currency-inr', color: Colors.upiPurple, bgColor: Colors.upiPurpleContainer },
-  address: { label: 'Address', icon: 'map-marker-outline', color: Colors.addressBlue, bgColor: Colors.addressBlueContainer },
-  email: { label: 'Email Address', icon: 'email-outline', color: Colors.emailOrange, bgColor: Colors.emailOrangeContainer },
-  url:   { label: 'Web Link',      icon: 'link-variant', color: Colors.urlTeal, bgColor: Colors.urlTealContainer },
+  phone: { label: 'Phone Number', icon: 'phone-outline', color: ACCENT, bgColor: ACCENT_BG },
+  upi:   { label: 'UPI ID',       icon: 'currency-inr', color: ACCENT, bgColor: ACCENT_BG },
+  address: { label: 'Address', icon: 'map-marker-outline', color: ACCENT, bgColor: ACCENT_BG },
+  email: { label: 'Email Address', icon: 'email-outline', color: ACCENT, bgColor: ACCENT_BG },
+  url:   { label: 'Web Link',      icon: 'link-variant', color: ACCENT, bgColor: ACCENT_BG },
 };
 
 interface ActionButtonProps {
-  label: string;
   icon: keyof typeof MaterialCommunityIcons.glyphMap;
   onPress: () => void;
   primary?: boolean;
-  color?: string;
-  toneColor?: string;
-  toneBg?: string;
 }
 
-function ActionButton({
-  label,
+function IconCircleButton({
   icon,
   onPress,
   primary = false,
-  color,
-  toneColor,
-  toneBg,
 }: ActionButtonProps) {
   const handlePress = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress();
   };
-  const iconColor = primary ? Colors.onPrimary : (toneColor ?? Colors.onSurfaceVariant);
-  const textColor = primary ? Colors.onPrimary : (toneColor ?? Colors.onSurfaceVariant);
   return (
     <TouchableOpacity
-      style={[
-        styles.actionBtn,
-        primary && styles.actionBtnPrimary,
-        primary && color ? { backgroundColor: color } : {},
-        !primary && toneBg ? { backgroundColor: toneBg } : {},
-        !primary && toneColor ? { borderColor: `${toneColor}40` } : {},
-      ]}
+      style={[styles.circleActionBtn, primary ? styles.circleActionBtnPrimary : styles.circleActionBtnSecondary]}
       onPress={handlePress}
       activeOpacity={0.86}
     >
-      <MaterialCommunityIcons
-        name={icon}
-        size={16}
-        color={iconColor}
-      />
-      <Text style={[styles.actionBtnLabel, primary && styles.actionBtnLabelPrimary, !primary ? { color: textColor } : {}]}>
-        {label}
-      </Text>
+      <MaterialCommunityIcons name={icon} size={18} color={primary ? Colors.onPrimary : ACCENT} />
     </TouchableOpacity>
   );
 }
@@ -109,12 +87,6 @@ export default function IntentCard({ intent }: IntentCardProps) {
   const openWhatsApp = useCallback(() => {
     Linking.openURL(buildWhatsAppLink(intent.value)).catch(() => {
       Alert.alert('WhatsApp not found', 'Please install WhatsApp to use this feature.');
-    });
-  }, [intent.value]);
-
-  const openTelegram = useCallback(() => {
-    Linking.openURL(buildTelegramLink(intent.value)).catch(() => {
-      Alert.alert('Telegram not found', 'Please install Telegram to use this feature.');
     });
   }, [intent.value]);
 
@@ -166,81 +138,38 @@ export default function IntentCard({ intent }: IntentCardProps) {
     switch (intent.type) {
       case 'phone':
         return (
-          <View style={styles.actionsRow}>
-            <ActionButton label="CALL" icon={ICONS.phone} onPress={openPhone} primary color={Colors.phoneGreen} />
-            <ActionButton
-              label="WHATSAPP"
-              icon={ICONS.whatsapp}
-              onPress={openWhatsApp}
-              toneColor={Colors.phoneGreen}
-              toneBg={Colors.phoneGreenContainer}
-            />
-            <ActionButton
-              label="TELEGRAM"
-              icon={ICONS.telegram}
-              onPress={openTelegram}
-              toneColor={Colors.phoneGreen}
-              toneBg={Colors.phoneGreenContainer}
-            />
-            <ActionButton
-              label="SAVE"
-              icon={ICONS.save}
-              onPress={saveContact}
-              toneColor={Colors.phoneGreen}
-              toneBg={Colors.phoneGreenContainer}
-            />
+          <View style={styles.phoneIconActionsRow}>
+            <IconCircleButton icon={ICONS.phone} onPress={openPhone} primary />
+            <IconCircleButton icon={ICONS.whatsapp} onPress={openWhatsApp} />
+            <IconCircleButton icon={ICONS.save} onPress={saveContact} />
           </View>
         );
       case 'upi':
         return (
-          <View style={styles.actionsRow}>
-            <ActionButton label="PAY NOW" icon={ICONS.upi} onPress={openUpi} primary color={Colors.upiPurple} />
-            <ActionButton
-              label="COPY"
-              icon={ICONS.copy}
-              onPress={copyToClipboard}
-              toneColor={Colors.upiPurple}
-              toneBg={Colors.upiPurpleContainer}
-            />
+          <View style={styles.phoneIconActionsRow}>
+            <IconCircleButton icon={ICONS.upi} onPress={openUpi} primary />
+            <IconCircleButton icon={ICONS.copy} onPress={copyToClipboard} />
           </View>
         );
       case 'address':
         return (
-          <View style={styles.actionsRow}>
-            <ActionButton label="NAVIGATE" icon={ICONS.navigate} onPress={openMaps} primary color={Colors.primary} />
-            <ActionButton
-              label="COPY"
-              icon={ICONS.copy}
-              onPress={copyToClipboard}
-              toneColor={Colors.addressBlue}
-              toneBg={Colors.addressBlueContainer}
-            />
+          <View style={styles.phoneIconActionsRow}>
+            <IconCircleButton icon={ICONS.navigate} onPress={openMaps} primary />
+            <IconCircleButton icon={ICONS.copy} onPress={copyToClipboard} />
           </View>
         );
       case 'email':
         return (
-          <View style={styles.actionsRow}>
-            <ActionButton label="COMPOSE" icon={ICONS.email} onPress={openEmail} primary color={Colors.emailOrange} />
-            <ActionButton
-              label="COPY"
-              icon={ICONS.copy}
-              onPress={copyToClipboard}
-              toneColor={Colors.emailOrange}
-              toneBg={Colors.emailOrangeContainer}
-            />
+          <View style={styles.phoneIconActionsRow}>
+            <IconCircleButton icon={ICONS.email} onPress={openEmail} primary />
+            <IconCircleButton icon={ICONS.copy} onPress={copyToClipboard} />
           </View>
         );
       case 'url':
         return (
-          <View style={styles.actionsRow}>
-            <ActionButton label="OPEN" icon={ICONS.open} onPress={openUrl} primary color={Colors.urlTeal} />
-            <ActionButton
-              label="COPY"
-              icon={ICONS.copy}
-              onPress={copyToClipboard}
-              toneColor={Colors.urlTeal}
-              toneBg={Colors.urlTealContainer}
-            />
+          <View style={styles.phoneIconActionsRow}>
+            <IconCircleButton icon={ICONS.open} onPress={openUrl} primary />
+            <IconCircleButton icon={ICONS.copy} onPress={copyToClipboard} />
           </View>
         );
     }
@@ -265,7 +194,7 @@ export default function IntentCard({ intent }: IntentCardProps) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.surfaceContainerLowest,
-    borderRadius: Radii.lg,
+    borderRadius: Radii.xl,
     padding: Spacing.lg,
     marginBottom: Spacing.md,
     borderWidth: 1,
@@ -279,9 +208,9 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   iconBubble: {
-    width: 44,
-    height: 44,
-    borderRadius: Radii.md,
+    width: 42,
+    height: 42,
+    borderRadius: Radii.lg,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -298,39 +227,27 @@ const styles = StyleSheet.create({
   intentValue: {
     ...Typography.bodyLg,
     color: Colors.onSurface,
-    fontFamily: 'Inter_500Medium',
+    fontFamily: 'Poppins_500Medium',
   },
-  actionsRow: {
+  phoneIconActionsRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
-    flexWrap: 'wrap',
+    marginTop: 2,
   },
-  actionBtn: {
-    flexDirection: 'row',
+  circleActionBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: Radii.full,
     alignItems: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radii.lg,
-    backgroundColor: Colors.surfaceContainerLow,
-    flex: 1,
-    minWidth: 120,
-    minHeight: 44,
     justifyContent: 'center',
     borderWidth: 1,
+  },
+  circleActionBtnPrimary: {
+    backgroundColor: ACCENT,
+    borderColor: ACCENT,
+  },
+  circleActionBtnSecondary: {
+    backgroundColor: ACCENT_BG,
     borderColor: Colors.outlineVariant,
-  },
-  actionBtnPrimary: {
-    backgroundColor: Colors.primary,
-    flexGrow: 2,
-  },
-  actionBtnLabel: {
-    ...Typography.labelMd,
-    color: Colors.onSurfaceVariant,
-    letterSpacing: 0.1,
-    textTransform: 'none',
-  },
-  actionBtnLabelPrimary: {
-    color: Colors.onPrimary,
   },
 });

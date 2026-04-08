@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useFocusEffect } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors, Spacing, Radii, Typography, Shadows } from '../../src/theme/tokens';
 import { useBiometrics } from '../../src/hooks/useBiometrics';
 import ScanHistoryItem, { ScanHistoryItemSeparator } from '../../src/components/ScanHistoryItem';
@@ -189,7 +189,7 @@ export default function HistoryScreen() {
         ListEmptyComponent={
           !isLoading ? (
             <View style={styles.emptyState}>
-              <Ionicons name="archive-outline" size={52} color={Colors.onSurfaceVariant} />
+              <MaterialCommunityIcons name="archive-outline" size={52} color={Colors.onSurfaceVariant} />
               <Text style={styles.emptyTitle}>No scans yet</Text>
               <Text style={styles.emptySubtitle}>Your captured scans will appear here.</Text>
             </View>
@@ -222,25 +222,28 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingHorizontal: Spacing['2xl'],
-    paddingTop: Spacing['3xl'],
-    paddingBottom: Spacing.xl,
+    paddingTop: Spacing['4xl'],
+    paddingBottom: Spacing['2xl'],
+    backgroundColor: Colors.headerDark,
+    borderBottomLeftRadius: Radii.xl,
+    borderBottomRightRadius: Radii.xl,
   },
   eyebrow: {
     ...Typography.labelMd,
-    color: Colors.onSurfaceVariant,
+    color: Colors.onHeaderMuted,
     marginBottom: 4,
     textTransform: 'none',
     letterSpacing: 0.2,
   },
   title: {
     ...Typography.displaySm,
-    color: Colors.onSurface,
+    color: Colors.onHeader,
   },
   subtitle: {
     ...Typography.bodySm,
-    color: Colors.onSurfaceVariant,
+    color: Colors.onHeaderMuted,
     marginTop: 2,
   },
   headerRight: {
@@ -251,7 +254,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: Colors.surfaceContainerLowest,
+    backgroundColor: Colors.headerDarkElevated,
     borderRadius: Radii.full,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
@@ -265,14 +268,14 @@ const styles = StyleSheet.create({
   },
   liveChipText: {
     ...Typography.labelSm,
-    color: Colors.onSurface,
+    color: Colors.onHeader,
     textTransform: 'none',
     letterSpacing: 0,
     lineHeight: 12,
   },
   sectionHeader: {
     paddingHorizontal: Spacing['2xl'],
-    paddingTop: Spacing.lg,
+    paddingTop: Spacing.xl,
     paddingBottom: Spacing.md,
   },
   sectionHeaderText: {
@@ -293,7 +296,7 @@ const styles = StyleSheet.create({
   loadMoreText: {
     ...Typography.bodyLg,
     color: Colors.primary,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Poppins_600SemiBold',
   },
 
   // Lock Gate
@@ -332,6 +335,6 @@ const styles = StyleSheet.create({
   unlockBtnText: {
     ...Typography.bodyLg,
     color: Colors.onPrimary,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Poppins_600SemiBold',
   },
 });

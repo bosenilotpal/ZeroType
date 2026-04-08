@@ -3,11 +3,11 @@
 // ============================================================
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, Switch, TouchableOpacity,
+  View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Alert,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors, Spacing, Radii, Typography, Shadows } from '../../src/theme/tokens';
 import { clearAllScans } from '../../src/storage/db';
 import * as Haptics from 'expo-haptics';
@@ -43,13 +43,16 @@ function SettingRow({ icon, label, description, value, onToggle, onPress, destru
         </View>
       </View>
       {onToggle !== undefined && value !== undefined && (
-        <Switch
-          value={value}
-          onValueChange={onToggle}
-          trackColor={{ false: Colors.surfaceContainerHigh, true: Colors.primaryContainer }}
-          thumbColor={value ? Colors.primary : Colors.onSurfaceDisabled}
-          ios_backgroundColor={Colors.surfaceContainerHigh}
-        />
+        <TouchableOpacity
+          onPress={() => onToggle(!value)}
+          activeOpacity={0.9}
+          style={[
+            styles.toggleTrack,
+            value ? styles.toggleTrackOn : styles.toggleTrackOff,
+          ]}
+        >
+          <View style={[styles.toggleThumb, value ? styles.toggleThumbOn : styles.toggleThumbOff]} />
+        </TouchableOpacity>
       )}
       {showChevron && <Text style={styles.chevron}>›</Text>}
     </TouchableOpacity>
@@ -68,6 +71,7 @@ function SectionCard({ title, children }: { title: string; children: React.React
 export default function SettingsScreen() {
   const [hapticsEnabled, setHapticsEnabled] = useState(true);
   const [requireBiometrics, setRequireBiometrics] = useState(true);
+  const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
   const { isSupported, biometricType } = useBiometrics();
 
   const biometricLabel = biometricType === 'faceid'
@@ -99,14 +103,14 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      {/* Header */}
+    <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Preferences</Text>
         <Text style={styles.title}>Settings</Text>
         <Text style={styles.subtitle}>Control privacy, feedback, and app data</Text>
       </View>
 
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       {/* Privacy */}
       <Animated.View entering={FadeInDown.delay(60)}>
         <SectionCard title="PRIVACY & SECURITY">
@@ -133,8 +137,33 @@ export default function SettingsScreen() {
         </SectionCard>
       </Animated.View>
 
+      {/* Appearance */}
+      <Animated.View entering={FadeInDown.delay(150)}>
+        <SectionCard title="APPEARANCE">
+          <View style={styles.themeRow}>
+            <Text style={styles.settingLabel}>Theme Mode</Text>
+            <View style={styles.themeToggleGroup}>
+              <TouchableOpacity
+                style={[styles.themeToggleBtn, themeMode === 'light' && styles.themeToggleBtnActive]}
+                onPress={() => setThemeMode('light')}
+                activeOpacity={0.9}
+              >
+                <Text style={[styles.themeToggleText, themeMode === 'light' && styles.themeToggleTextActive]}>Light</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.themeToggleBtn, themeMode === 'dark' && styles.themeToggleBtnActive]}
+                onPress={() => setThemeMode('dark')}
+                activeOpacity={0.9}
+              >
+                <Text style={[styles.themeToggleText, themeMode === 'dark' && styles.themeToggleTextActive]}>Dark</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </SectionCard>
+      </Animated.View>
+
       {/* Data */}
-      <Animated.View entering={FadeInDown.delay(180)}>
+      <Animated.View entering={FadeInDown.delay(210)}>
         <SectionCard title="DATA">
           <SettingRow
             icon="delete-outline"
@@ -147,13 +176,13 @@ export default function SettingsScreen() {
       </Animated.View>
 
       {/* About */}
-      <Animated.View entering={FadeInDown.delay(240)}>
+      <Animated.View entering={FadeInDown.delay(270)}>
         <SectionCard title="ABOUT">
           <View style={styles.aboutBlock}>
             <Text style={styles.appName}>ScanIntent</Text>
             <Text style={styles.aboutVersion}>Version 1.0.0</Text>
             <View style={styles.privacyBadge}>
-              <Ionicons name="shield-checkmark-outline" size={14} color={Colors.onSurfaceVariant} />
+              <MaterialCommunityIcons name="shield-check-outline" size={14} color={Colors.onSurfaceVariant} />
               <Text style={styles.privacyText}>100% On-Device · No Cloud · No Tracking</Text>
             </View>
             <Text style={styles.aboutDetail}>
@@ -165,7 +194,8 @@ export default function SettingsScreen() {
       </Animated.View>
 
       <View style={{ height: Spacing['5xl'] }} />
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -176,44 +206,47 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingBottom: Spacing['4xl'],
+    paddingTop: Spacing.md,
   },
   header: {
     paddingHorizontal: Spacing['2xl'],
-    paddingTop: Spacing['3xl'],
-    paddingBottom: Spacing.xl,
+    paddingTop: Spacing['4xl'],
+    paddingBottom: Spacing['2xl'],
+    minHeight: 136,
+    backgroundColor: Colors.headerDark,
+    borderBottomLeftRadius: Radii.xl,
+    borderBottomRightRadius: Radii.xl,
   },
   eyebrow: {
     ...Typography.labelMd,
-    color: Colors.onSurfaceVariant,
+    color: Colors.onHeaderMuted,
     marginBottom: 4,
     textTransform: 'none',
     letterSpacing: 0.2,
   },
   title: {
     ...Typography.displaySm,
-    color: Colors.onSurface,
+    color: Colors.onHeader,
   },
   subtitle: {
     ...Typography.bodySm,
-    color: Colors.onSurfaceVariant,
-    marginTop: 6,
+    color: Colors.onHeaderMuted,
+    marginTop: 2,
   },
   section: {
-    marginBottom: Spacing.lg,
-    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing['2xl'],
   },
   sectionTitle: {
-    ...Typography.labelSm,
+    ...Typography.labelMd,
     color: Colors.onSurfaceVariant,
-    marginLeft: Spacing.sm,
-    marginBottom: 6,
+    marginBottom: Spacing.md,
     textTransform: 'none',
     letterSpacing: 0.2,
   },
   sectionCard: {
     backgroundColor: Colors.surfaceContainerLowest,
-    borderRadius: Radii.lg,
-    overflow: 'hidden',
+    borderRadius: Radii.xl,
     borderWidth: 1,
     borderColor: Colors.outlineVariant,
     ...Shadows.card,
@@ -224,8 +257,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: Spacing.lg,
     paddingHorizontal: Spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.outlineVariant,
   },
   settingRowLeft: {
     flexDirection: 'row',
@@ -251,15 +282,78 @@ const styles = StyleSheet.create({
   settingLabel: {
     ...Typography.bodyLg,
     color: Colors.onSurface,
-    fontFamily: 'Inter_500Medium',
+    fontFamily: 'Poppins_500Medium',
   },
   settingDesc: {
     ...Typography.bodySm,
     color: Colors.onSurfaceVariant,
   },
+  themeRow: {
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.md,
+  },
+  themeToggleGroup: {
+    flexDirection: 'row',
+    backgroundColor: Colors.surfaceContainerLow,
+    borderRadius: Radii.full,
+    padding: 4,
+    gap: 6,
+    alignSelf: 'flex-start',
+  },
+  themeToggleBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: Radii.full,
+  },
+  themeToggleBtnActive: {
+    backgroundColor: Colors.primary,
+  },
+  themeToggleText: {
+    ...Typography.labelMd,
+    color: Colors.onSurfaceVariant,
+    textTransform: 'none',
+    letterSpacing: 0,
+  },
+  themeToggleTextActive: {
+    color: Colors.onPrimary,
+  },
   chevron: {
     fontSize: 22,
     color: Colors.onSurfaceVariant,
+  },
+  toggleTrack: {
+    width: 48,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 3,
+    justifyContent: 'center',
+  },
+  toggleTrackOn: {
+    backgroundColor: '#111111',
+    borderColor: '#111111',
+  },
+  toggleTrackOff: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#D6DEE8',
+  },
+  toggleThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.18,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  toggleThumbOn: {
+    alignSelf: 'flex-end',
+  },
+  toggleThumbOff: {
+    alignSelf: 'flex-start',
   },
   aboutBlock: {
     padding: Spacing.lg,

@@ -4,13 +4,14 @@
 // ============================================================
 import React, { useState, useCallback, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Platform,
+  View, Text, StyleSheet, TouchableOpacity,
   Dimensions, StatusBar, Alert,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, {
   useSharedValue, useAnimatedStyle, withRepeat, withSequence,
   withTiming, FadeIn, FadeOut, ZoomIn,
@@ -28,6 +29,11 @@ export default function CameraScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [flash, setFlash] = useState<'off' | 'on'>('off');
   const { state, cameraRef, capture, captureFromUri, reset } = useOCR();
+  const tabBarHeight = useBottomTabBarHeight();
+  const controlsBottom = tabBarHeight + 2;
+  const hintBottom = controlsBottom + 108;
+  const errorBottom = tabBarHeight + Spacing['3xl'];
+  const showCameraControls = state.status === 'idle';
 
   // Viewfinder corner animation (breathing corners)
   const cornerScale = useSharedValue(1);
@@ -98,7 +104,7 @@ export default function CameraScreen() {
   if (!permission.granted) {
     return (
       <View style={styles.permissionScreen}>
-        <Ionicons name="camera-outline" size={58} color={Colors.primary} style={styles.permissionIcon} />
+        <MaterialCommunityIcons name="camera-outline" size={58} color={Colors.primary} style={styles.permissionIcon} />
         <Text style={styles.permissionTitle}>Camera Access Needed</Text>
         <Text style={styles.permissionBody}>
           ScanIntent needs camera access to capture and recognize text from physical documents.
@@ -146,55 +152,65 @@ export default function CameraScreen() {
       </Animated.View>
 
       {/* Top Bar */}
-      <View style={styles.topBar}>
-        <View style={styles.topBarPill}>
-          <View style={styles.autoDotLive} />
-          <Text style={styles.topBarText}>Auto Detecting</Text>
+      <View style={styles.scanHeader}>
+        <View>
+          <Text style={styles.headerEyebrow}>Scanner</Text>
+          <Text style={styles.headerTitle}>Scan</Text>
+          <Text style={styles.headerSubtitle}>Capture and extract data instantly</Text>
         </View>
-        <TouchableOpacity style={styles.iconBtn} onPress={() =>
-          Alert.alert('ScanIntent', 'Point your camera at text (business cards, banners, notes). Tap the shutter to capture and extract phone numbers, UPI IDs, addresses, and more — all offline.')
-        }>
-          <Ionicons name="information-circle-outline" size={18} color="#FFFFFF" />
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <View style={styles.topBarPill}>
+            <View style={styles.autoDotLive} />
+            <Text style={styles.topBarText}>Auto Detecting</Text>
+          </View>
+        </View>
       </View>
 
       {/* Hint text */}
-      <Animated.View entering={FadeIn} style={styles.hintContainer} pointerEvents="none">
-        <View style={styles.hintPill}>
-          <Text style={styles.hintText}>Center text in the frame to scan</Text>
-        </View>
-      </Animated.View>
+      {showCameraControls && (
+        <Animated.View
+          entering={FadeIn}
+          style={[styles.hintContainer, { bottom: hintBottom }]}
+          pointerEvents="none"
+        >
+          <View style={styles.hintPill}>
+            <Text style={styles.hintText}>Center text in the frame to scan</Text>
+          </View>
+        </Animated.View>
+      )}
 
       {/* Bottom Controls */}
-      <View style={styles.bottomControls}>
-        {/* Gallery */}
-        <TouchableOpacity style={styles.sideControl} onPress={handleGallery}>
-          <Ionicons name="images-outline" size={22} color="#FFFFFF" />
-          <Text style={styles.sideControlLabel}>Gallery</Text>
-        </TouchableOpacity>
+      {showCameraControls && (
+        <View style={[styles.bottomControls, { bottom: controlsBottom }]}>
+          {/* Gallery */}
+          <TouchableOpacity style={styles.sideControl} onPress={handleGallery}>
+            <MaterialCommunityIcons name="image-multiple-outline" size={22} color="#FFFFFF" />
+            <Text style={styles.sideControlLabel}>Gallery</Text>
+          </TouchableOpacity>
 
-        {/* Capture FAB */}
-        <TouchableOpacity
-          style={[styles.captureBtn, state.status !== 'idle' && styles.captureBtnDisabled]}
-          onPress={handleCapture}
-          disabled={state.status !== 'idle'}
-          activeOpacity={0.85}
-        >
-          <View style={styles.captureInner}>
-            <Ionicons name="camera" size={26} color={Colors.onPrimary} />
-          </View>
-        </TouchableOpacity>
+          {/* Capture FAB */}
+          <TouchableOpacity
+            style={[styles.captureBtn, state.status !== 'idle' && styles.captureBtnDisabled]}
+            onPress={handleCapture}
+            disabled={state.status !== 'idle'}
+            activeOpacity={0.85}
+          >
+            <View style={styles.captureInner}>
+              <MaterialCommunityIcons name="camera" size={26} color={Colors.onPrimary} />
+            </View>
+          </TouchableOpacity>
 
-        {/* Flash */}
-        <TouchableOpacity style={styles.sideControl} onPress={toggleFlash}>
-          <Ionicons
-            name={flash === 'on' ? 'flash' : 'flash-off-outline'}
-            size={22}
-            color="#FFFFFF"
-          />
-          <Text style={styles.sideControlLabel}>Light</Text>
-        </TouchableOpacity>
-      </View>
+          {/* Flash */}
+          <TouchableOpacity style={styles.sideControl} onPress={toggleFlash}>
+            <MaterialCommunityIcons
+              name={flash === 'on' ? 'flash' : 'flash-off'}
+              size={22}
+              color="#FFFFFF"
+            />
+            <Text style={styles.sideControlLabel}>Light</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Analyzing Overlay (frozen frame + scan animation) */}
       <AnalyzingOverlay
@@ -212,9 +228,9 @@ export default function CameraScreen() {
 
       {/* Error state — keep retry visible so scan never feels stuck */}
       {state.status === 'error' && (
-        <View style={styles.errorBar}>
+        <View style={[styles.errorBar, { bottom: errorBottom }]}>
           <View style={styles.errorContent}>
-            <Ionicons name="alert-circle-outline" size={18} color="#FEE2E2" />
+            <MaterialCommunityIcons name="alert-circle-outline" size={18} color="#FEE2E2" />
             <Text style={styles.errorText} numberOfLines={2}>
               {state.error ?? 'Scan failed. Please try again.'}
             </Text>
@@ -279,45 +295,64 @@ const styles = StyleSheet.create({
   bottomRight: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0, borderBottomRightRadius: 6 },
 
   // Top Bar
-  topBar: {
+  scanHeader: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 58 : 32,
-    left: Spacing.lg,
-    right: Spacing.lg,
+    top: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: Spacing['2xl'],
+    paddingTop: Spacing['4xl'],
+    paddingBottom: Spacing['2xl'],
+    backgroundColor: Colors.headerDark,
+    borderBottomLeftRadius: Radii.xl,
+    borderBottomRightRadius: Radii.xl,
+    zIndex: 18,
+  },
+  headerEyebrow: {
+    ...Typography.labelMd,
+    color: Colors.onHeaderMuted,
+    marginBottom: 4,
+    textTransform: 'none',
+    letterSpacing: 0.2,
+  },
+  headerTitle: {
+    ...Typography.displaySm,
+    color: Colors.onHeader,
+  },
+  headerSubtitle: {
+    ...Typography.bodySm,
+    color: Colors.onHeaderMuted,
+    marginTop: 2,
+  },
+  headerRight: {
+    alignItems: 'flex-end',
+    gap: Spacing.sm,
   },
   topBarPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    gap: 6,
+    backgroundColor: Colors.headerDarkElevated,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
     borderRadius: Radii.full,
+    ...Shadows.card,
   },
   autoDotLive: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.primaryContainer,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.phoneGreen,
   },
   topBarText: {
-    ...Typography.labelMd,
-    color: '#FFFFFF',
+    ...Typography.labelSm,
+    color: Colors.onHeader,
     textTransform: 'none',
-    letterSpacing: 0.2,
-  },
-  iconBtn: {
-    position: 'absolute',
-    right: 0,
-    width: 36,
-    height: 36,
-    borderRadius: Radii.full,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    letterSpacing: 0,
+    lineHeight: 12,
   },
 
   // Hint
@@ -327,9 +362,13 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: 'center',
+    zIndex: 40,
+    elevation: 40,
   },
   hintPill: {
-    backgroundColor: 'rgba(0,0,0,0.50)',
+    backgroundColor: 'rgba(13,17,23,0.72)',
+    borderWidth: 1,
+    borderColor: 'rgba(248,250,252,0.18)',
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: Radii.full,
@@ -342,19 +381,21 @@ const styles = StyleSheet.create({
   // Bottom Controls
   bottomControls: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 44 : 28,
+    bottom: 44,
     left: 0,
     right: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-evenly',
-    paddingHorizontal: Spacing['2xl'],
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing['4xl'],
+    zIndex: 45,
+    elevation: 45,
   },
   sideControl: {
     alignItems: 'center',
     gap: 4,
     opacity: 0.85,
-    minWidth: 72,
+    width: 72,
     minHeight: 44,
     justifyContent: 'center',
   },
@@ -369,10 +410,11 @@ const styles = StyleSheet.create({
     height: 84,
     borderRadius: 42,
     borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.5)',
+    borderColor: 'rgba(255,255,255,0.65)',
     backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
+    marginHorizontal: Spacing.md,
   },
   captureBtnDisabled: {
     opacity: 0.4,
@@ -381,10 +423,10 @@ const styles = StyleSheet.create({
     width: 66,
     height: 66,
     borderRadius: 33,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.headerDarkElevated,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: Colors.primary,
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
     shadowRadius: 16,
@@ -425,19 +467,21 @@ const styles = StyleSheet.create({
   permissionBtnText: {
     ...Typography.bodyLg,
     color: Colors.onPrimary,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Poppins_600SemiBold',
   },
   errorBar: {
     position: 'absolute',
     left: Spacing.lg,
     right: Spacing.lg,
-    bottom: Platform.OS === 'ios' ? 140 : 120,
+    bottom: 140,
     borderRadius: Radii.lg,
     backgroundColor: 'rgba(127, 29, 29, 0.94)',
     borderWidth: 1,
     borderColor: 'rgba(254, 202, 202, 0.35)',
     padding: Spacing.md,
     gap: Spacing.sm,
+    zIndex: 50,
+    elevation: 50,
   },
   errorContent: {
     flexDirection: 'row',

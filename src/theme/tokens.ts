@@ -43,6 +43,12 @@ export const Colors = {
   glassSurface: 'rgba(244, 246, 249, 0.85)',
   glassBorder: 'rgba(255, 255, 255, 0.60)',
   primaryGlow: 'rgba(17, 17, 17, 0.15)',
+
+  // Premium dark header layer (sample-inspired)
+  headerDark: '#0D1117',
+  headerDarkElevated: '#161B22',
+  onHeader: '#F8FAFC',
+  onHeaderMuted: '#AAB4C3',
 };
 
 export const Gradients = {
@@ -82,19 +88,19 @@ export const Radii = {
 export const Typography = {
   // Display — for scan results, hero numbers
   displayLg: {
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Poppins_700Bold',
     fontSize: 36,
     lineHeight: 44,
     letterSpacing: -0.72, // -0.02em
   },
   displayMd: {
-    fontFamily: 'Inter_700Bold',
+    fontFamily: 'Poppins_700Bold',
     fontSize: 28,
     lineHeight: 36,
     letterSpacing: -0.56,
   },
   displaySm: {
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Poppins_600SemiBold',
     fontSize: 22,
     lineHeight: 30,
     letterSpacing: -0.44,
@@ -102,13 +108,13 @@ export const Typography = {
 
   // Headline
   headlineLg: {
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Poppins_600SemiBold',
     fontSize: 20,
     lineHeight: 28,
     letterSpacing: -0.4,
   },
   headlineMd: {
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Poppins_600SemiBold',
     fontSize: 18,
     lineHeight: 26,
     letterSpacing: -0.36,
@@ -116,19 +122,19 @@ export const Typography = {
 
   // Body
   bodyLg: {
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'Poppins_400Regular',
     fontSize: 16,
     lineHeight: 24,
     letterSpacing: 0,
   },
   bodyMd: {
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'Poppins_400Regular',
     fontSize: 14,
     lineHeight: 20,
     letterSpacing: 0,
   },
   bodySm: {
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'Poppins_400Regular',
     fontSize: 12,
     lineHeight: 18,
     letterSpacing: 0,
@@ -136,21 +142,21 @@ export const Typography = {
 
   // Labels — editorial "eyebrow" style (ALL CAPS + tracking)
   labelLg: {
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Poppins_600SemiBold',
     fontSize: 12,
     lineHeight: 16,
     letterSpacing: 0.6, // +0.05em
     textTransform: 'uppercase' as const,
   },
   labelMd: {
-    fontFamily: 'Inter_500Medium',
+    fontFamily: 'Poppins_500Medium',
     fontSize: 11,
     lineHeight: 14,
     letterSpacing: 0.55,
     textTransform: 'uppercase' as const,
   },
   labelSm: {
-    fontFamily: 'Inter_500Medium',
+    fontFamily: 'Poppins_500Medium',
     fontSize: 10,
     lineHeight: 14,
     letterSpacing: 0.5,

@@ -6,7 +6,9 @@ import React, { useCallback, useRef, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import BottomSheet, { BottomSheetScrollView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing, Radii, Typography, Shadows, Animation } from '../theme/tokens';
 import IntentCard from './IntentCard';
 import { Intent } from '../engine/parser';
@@ -20,7 +22,13 @@ interface ActionDrawerProps {
 
 export default function ActionDrawer({ intents, visible, onClose, onSaveAll }: ActionDrawerProps) {
   const sheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ['55%', '88%'], []);
+  const snapPoints = useMemo(() => ['60%', '90%'], []);
+  const tabBarHeight = useBottomTabBarHeight();
+  const insets = useSafeAreaInsets();
+  const bottomSpacing = useMemo(
+    () => Math.max(Spacing['5xl'], tabBarHeight + insets.bottom + Spacing.xl),
+    [tabBarHeight, insets.bottom]
+  );
 
   useEffect(() => {
     if (visible) {
@@ -53,31 +61,34 @@ export default function ActionDrawer({ intents, visible, onClose, onSaveAll }: A
       ref={sheetRef}
       index={-1}
       snapPoints={snapPoints}
+      enableDynamicSizing={false}
       onChange={(index) => {
         // Avoid firing on initial -1 while hidden; only notify close when drawer was shown.
         if (visible && index === -1) onClose();
       }}
       backdropComponent={renderBackdrop}
       enablePanDownToClose
+      bottomInset={0}
       handleIndicatorStyle={styles.handle}
       backgroundStyle={styles.sheetBackground}
       style={styles.sheet}
     >
+      {/* Sticky Header */}
+      <View style={styles.drawerHeader}>
+        <View>
+          <Text style={styles.eyebrow}>Detected Data</Text>
+          <Text style={styles.title}>Review Results</Text>
+        </View>
+        <TouchableOpacity style={styles.closeBtn} onPress={handleClose}>
+          <MaterialCommunityIcons name="close" size={18} color={Colors.onSurfaceVariant} />
+        </TouchableOpacity>
+      </View>
+
       <BottomSheetScrollView
-        contentContainerStyle={styles.content}
+        style={styles.scroll}
+        contentContainerStyle={[styles.content, { paddingBottom: bottomSpacing }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.drawerHeader}>
-          <View>
-            <Text style={styles.eyebrow}>Detected Data</Text>
-            <Text style={styles.title}>Review Results</Text>
-          </View>
-          <TouchableOpacity style={styles.closeBtn} onPress={handleClose}>
-            <Ionicons name="close" size={18} color={Colors.onSurfaceVariant} />
-          </TouchableOpacity>
-        </View>
-
         {/* Count Badge */}
         {intents.length > 0 && (
           <Animated.View entering={FadeIn.delay(Animation.fast)} style={styles.countBadge}>
@@ -90,7 +101,7 @@ export default function ActionDrawer({ intents, visible, onClose, onSaveAll }: A
         {/* Intent Cards */}
         {intents.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="search-outline" size={44} color={Colors.onSurfaceVariant} />
+            <MaterialCommunityIcons name="magnify" size={44} color={Colors.onSurfaceVariant} />
             <Text style={styles.emptyTitle}>No data detected</Text>
             <Text style={styles.emptySubtitle}>
               Try capturing a clearer image with better lighting.
@@ -115,8 +126,6 @@ export default function ActionDrawer({ intents, visible, onClose, onSaveAll }: A
             </TouchableOpacity>
           </Animated.View>
         )}
-
-        <View style={{ height: Spacing['3xl'] }} />
       </BottomSheetScrollView>
     </BottomSheet>
   );
@@ -140,18 +149,27 @@ const styles = StyleSheet.create({
     borderRadius: Radii.full,
   },
   content: {
-    padding: Spacing['2xl'],
-    paddingTop: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.sm,
+  },
+  scroll: {
+    flex: 1,
   },
   drawerHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.sm,
+    backgroundColor: Colors.surfaceContainerLowest,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.outlineVariant,
   },
   eyebrow: {
     ...Typography.labelMd,
-    color: Colors.primary,
+    color: Colors.onSurfaceVariant,
     marginBottom: 4,
     textTransform: 'none',
     letterSpacing: 0.2,
@@ -161,16 +179,18 @@ const styles = StyleSheet.create({
     color: Colors.onSurface,
   },
   closeBtn: {
-    width: 40,
-    height: 40,
+    width: 38,
+    height: 38,
     borderRadius: Radii.full,
     backgroundColor: Colors.surfaceContainerLow,
+    borderWidth: 1,
+    borderColor: Colors.outlineVariant,
     alignItems: 'center',
     justifyContent: 'center',
   },
   countBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: Colors.primaryContainer,
+    backgroundColor: Colors.surfaceContainerLow,
     paddingHorizontal: Spacing.md,
     paddingVertical: 6,
     borderRadius: Radii.full,
@@ -178,7 +198,7 @@ const styles = StyleSheet.create({
   },
   countBadgeText: {
     ...Typography.labelSm,
-    color: Colors.primary,
+    color: Colors.onSurfaceVariant,
     textTransform: 'none',
     letterSpacing: 0,
   },
@@ -209,6 +229,6 @@ const styles = StyleSheet.create({
   saveAllBtnText: {
     ...Typography.bodyLg,
     color: Colors.onPrimary,
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: 'Poppins_600SemiBold',
   },
 });
